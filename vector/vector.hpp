@@ -49,6 +49,35 @@ namespace ft
             size_type size() {return _size;}
             size_type capacity() {return _capacity;}
             
+            void resize (size_type n, value_type val = value_type())
+            {
+                if (n < _size)
+                    _size = n;
+                if (n > _size)
+                {
+                    reserve(n);
+                    for(size_type i = _size ; i < n; i++)
+                        _alloc.construct(&_data[i], val);
+                    _size = n;
+                }
+            }
+
+
+            void reserve (size_type n)
+            {
+                if (n > _capacity)
+                {
+                    value_type *tmp;
+                    tmp = _alloc.allocate(n);
+                    for(int i =0; i < _size ; i++)
+                        _alloc.construct(tmp+i, _data[i]);
+                    for(int i =0;i < _size; i++)
+                        _alloc.destroy(_data + i);
+                    _alloc.deallocate(_data, _capacity);
+                    _data = tmp;
+                    _capacity = n;
+                }
+            }
             void    swap(vector &x)
             {
                 size_type tmp = _size;
