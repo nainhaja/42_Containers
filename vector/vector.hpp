@@ -4,6 +4,9 @@
 #include "../iterator/random_access_iterator.hpp"
 #include "../iterator/reverse_iterator.hpp"
 
+#include <iostream>     // std::cout
+
+
 
 #pragma once
 
@@ -32,15 +35,28 @@ namespace ft
             typedef typename allocator_type::reference           reference;
             typedef typename allocator_type::const_reference     const_reference;
 
-            explicit vector(const allocator_type& alloc = allocator_type()) : _size(0), _capacity(0), _data(nullptr),_alloc(alloc)  {};
+            explicit vector(const allocator_type& alloc = allocator_type()) : _size(0), _capacity(0), _data(nullptr),_alloc(alloc)  {}; // vec();
             explicit vector(size_type n, const value_type& val = value_type(),
-                 const allocator_type& alloc = allocator_type()) : _size(n), _alloc(alloc), _data(val) {};
+                 const allocator_type& alloc = allocator_type()) : _size(n), _alloc(alloc), _capacity(n) // vec(size, value)
+            {
+                _data = _alloc.allocate(n);
+                for(size_t i = 0; i < _size ; i++)
+                    _alloc.construct(&_data[i], val);
+
+            }
+            // template <class InputIterator>
+            // vector (InputIterator first, InputIterator last, typename std::enable_if<!std::is_integral<InputIterator>::value, InputIterator>::type = InputIterator() , const allocator_type& alloc = allocator_type()) // vec(begin, end)
+            // {
+            //     size_t my_distance = std::distance(first, last);
+            // }
             vector (const vector& x) : _capacity(x.capacity()), _size(x.size()), _alloc(x._alloc) {};
             
 
             /*---------------------------ITERATORS-------------------*/
             iterator            begin() {return iterator(_data);}
             const_iterator      begin() const {return const_iterator(_data);}
+            iterator            end() {return iterator(_data + _size);}
+            const_iterator      end() const {return const_iterator(_data + _size);}
             reverse_iterator    rbegin() {return reverse_iterator(_data);}
             const_iterator      rbegin() const {return const_reverse_iterator(_data);}
 
@@ -61,8 +77,73 @@ namespace ft
                     _size = n;
                 }
             }
+            iterator insert (iterator position, const value_type& val)
+            {
+                ptrdiff_t my_position = std::distance(begin(), position);
+                if (_size + 1 > _capacity)
+                {
+                    if (_capacity == 0)
+                        reserve(1);
+                    else
+                        reserve(_capacity * 2);
+                }
+                for(difference_type i = _size - 1; i >= my_position; i--)
+                    _data[i+1] = _data[i];
+                _alloc.construct(&_data[my_position], val);
+                _size++;
+                return (iterator(_data + my_position));
+            }
 
+            void insert (iterator position, size_type n, const value_type& val)
+            {
+                difference_type my_position = std::distance(begin(), position);
+                if (_size + n > _capacity)
+                {
+                    if (n > _size)
+                        reserve(_size + n);
+                    else if (_capacity == 0)
+                        reserve(n);
+                    else
+                        reserve(_capacity * 2); 
+                }
+                for(difference_type i = _size - 1; i >= my_position; i--)
+                    _alloc.construct(&_data[n + i], _data[i]);
+                for(int i=0; i < n;i++)
+                    _alloc.construct(&_data[my_position + i], val);
+                _size += n;
+            }
 
+            // template <class InputIterator>
+            // void insert (iterator position, InputIterator first, InputIterator last)
+            // {
+
+            // }
+
+            void push_back (const value_type& val)
+            {
+                if (_size + 1 > _capacity)
+                {
+                    if (_capacity == 0)
+                        reserve(1);
+                    else
+                        reserve(_capacity * 2);
+                }
+                _alloc.construct(&_data[_size], val);
+                _size++;
+            }
+
+            void pop_back()
+            {
+                if (_size != 0)
+                {
+                    _alloc.destroy(&_data[_size - 1]);
+                    _size--;
+                }
+            }
+            // iterator insert (iterator position, const value_type& val)
+            // {
+
+            // }
             void reserve (size_type n)
             {
                 if (n > _capacity)
