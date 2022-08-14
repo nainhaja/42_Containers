@@ -429,7 +429,7 @@ int main()
     ft::pair<int, int> nice7(7,80);
     ft::pair<int, int> nice8(8,90);
     ft::pair<int, int> nice9(9,55);
-    ft::RBTree<int, int> ok;
+    ft::RBTree<ft::pair<int, int> > ok;
 
     ft::RBTree<int, int>::my_node *test;
     //test = ok.get_root();

@@ -11,20 +11,16 @@
 
 namespace ft
 {
-    
-    template < class Key,                                     // map::key_type
-        class T,                                       // map::mapped_type
-        class Compare = std::less<Key>,                     // map::key_compare
-        class Alloc = std::allocator<pair<const Key,T> >    // map::allocator_type
-        >
+    template < typename Pair, typename Compare, typename Alloc>
+
     class RBTree
     {
         private :
             struct my_node
             {
-                pair<Key, T> *data;
-                Key first;
-                T second;
+                Pair *data;
+                // Key first;
+                // T second;
                 my_node *left;
                 my_node *right;
                 int color;
@@ -32,17 +28,20 @@ namespace ft
             };
         public:
             typedef my_node                                   my_node;
-            typedef ft::RBT_iterator<pair<Key, T>, my_node,RBTree>                     iterator;
-            typedef ft::RBT_iterator<const pair<Key, T>, my_node, RBTree>               const_iterator;
+            typedef ft::RBT_iterator<Pair, my_node,RBTree>                     iterator;
+            typedef ft::RBT_iterator<const Pair, my_node, RBTree>               const_iterator;
             typedef ft::reverse_iterator<iterator>               reverse_iterator;
-            typedef ft::reverse_iterator<reverse_iterator>         const_reverse_iterator;
+            typedef ft::reverse_iterator<const_iterator>         const_reverse_iterator;
             typedef size_t                                       size_type;
             
             RBTree():_root(nullptr), _size(0)
             {
             }
+            RBTree(my_node *root, Alloc alloc, Compare comp, size_type size):_root(root), _alloc(alloc), _comp(comp), _size(size)
+            {}
             RBTree(RBTree const & x) :_root(x._root), _size(x._size){};
-            // RBTree(pair<Key, T> data)
+            ~RBTree(){}
+            // RBTree(Pair data)
             // {
             //     //super();
             //     this->_root = new my_node();
@@ -61,15 +60,42 @@ namespace ft
             const_iterator            begin() const {return iterator(min_on_right(_root), (*this));}
             iterator            end() {return iterator(NULL, (*this));}
             const_iterator            end() const {return iterator(NULL, (*this));}
-            my_node *get_new_node(pair<Key, T> data)
+            reverse_iterator rbegin()
+            {
+                return reverse_iterator(iterator(min_on_right(_root), (*this)));
+            }
+            const_reverse_iterator rbegin() const
+            {
+                return reverse_iterator(iterator(min_on_right(_root), (*this)));
+            }
+            reverse_iterator rend()
+            {
+                return reverse_iterator(iterator(min_on_right(_root), (*this)));
+            }
+            const_reverse_iterator rend() const
+            {
+                return reverse_iterator(iterator(min_on_right(_root), (*this)));
+            }
+            void    initialize_my_tree(const Compare &new_comp, const Alloc &new_alloc)
+            {
+                this->_alloc = new_alloc;
+                this->_comp = new_comp;
+            }
+            iterator get_iterator(my_node *node)
+            {
+                //std::cout << "NOde first and second" << node->data->first << "|" << node->data->second << std::endl;
+                return iterator(node, (*this));
+            }
+            my_node *get_new_node(Pair data)
             {
                 my_node *new_node = new my_node;
                 
-                new_node->data = new pair<Key, T>;
-                new_node->data->first = data.first;
-                new_node->data->second = data.second;
-                new_node->first = data.first;
-                new_node->second = data.second;
+                new_node->data = _alloc.allocate(1);
+                _alloc.construct(new_node->data, data);
+                // new_node->data->first = data.first;
+                // new_node->data->second = data.second;
+                // new_node->first = data.first;
+                // new_node->second = data.second;
                 new_node->left = NULL; // left subtree
                 new_node->right = NULL; // right subtree
                 new_node->color = false; // colour . either 'R' or 'B'
@@ -107,7 +133,18 @@ namespace ft
             {
                 return (this->_root == second.base());
             }
-            
+            operator RBTree<const Pair, Compare, Alloc>() const
+            {
+                return RBTree<const Pair, Compare, Alloc>(_root, _alloc, _comp, _size);
+            }
+            RBTree& operator= (const RBTree& x)
+            {
+                this->_alloc = x._alloc;
+                this->_comp = x._comp;
+                this->_size = x._size;
+                this->_root = x._root;
+                return (*this);
+            }
             my_node *rotateRight(my_node *node)
             {
                 my_node *left_node = node->left;
@@ -130,7 +167,24 @@ namespace ft
                 node->parent = left_node;
                 return(left_node);
             }
-
+            void clear_my_tree(my_node *root)
+            {
+                if (root)
+                {
+                    clear_my_tree(root->left);
+                    this->delete_node(root->left);
+                    this->balance_my_tree_after_del(root->left);
+                    clear_my_tree(root->right);
+                    this->delete_node(root->right);
+                    this->balance_my_tree_after_del(root->right);
+                    this->delete_node(root);                  
+                }
+                
+            }
+            void    set_size()
+            {
+                this->_size = 0;
+            }
             void printHelper(my_node *root, std::string indent, bool last) 
             {
                 if (root != NULL) 
@@ -157,7 +211,7 @@ namespace ft
                     std::string sColor = root->color == 1 ? "BLACK" : "RED";
                     if (root->color == -1)
                         sColor = "Double_Black";
-                    std::cout << root->data->second << "(" << sColor << ")" << std::endl;
+                    std::cout << root->data->first << "(" << sColor << ")" << std::endl;
                     printHelper(root->left, indent, false);
                     printHelper(root->right, indent, true);
                 }
@@ -175,13 +229,15 @@ namespace ft
                     //_root = new_node;
                     return new_node;
                 }
-                if (new_node->data->second > root->data->second)
+                if (new_node->data->first > root->data->first)
                 {
+                    //std::cout << "HH" << new_node->data->first << " xD " << root->data->first << std::endl;
                     root->right = insert_node(root->right, new_node);
                     root->right->parent = root;
                 }
-                else if (new_node->data->second < root->data->second)
+                else if (new_node->data->first < root->data->first)
                 {
+                    //std::cout << "HH" << new_node->data->second << " xD " << root->data->second << std::endl;
                     root->left = insert_node(root->left, new_node);
                     root->left->parent = root;
                 }
@@ -196,123 +252,129 @@ namespace ft
 
                 this->balance_my_tree(new_node);    
                 _size++;
-                return _root;
+                return new_node;
             }
             
             
             my_node * delete_node(my_node *node)
             {
-                my_node *parent;
-                if (node == _root && !node->right && !node->left)
+                if (node)
                 {
-                    node = NULL;
-                    _root = NULL;
-                    delete node;
-                    return NULL;
-                }
-                else if (!node->left && !node->right)
-                {
-                    parent = node->parent;
-                    if (parent->left == node)
-                        parent->left = NULL;
-                    else
-                        parent->right = NULL;
-                    delete node;
+                    my_node *parent;
+                    if (node == _root && !node->right && !node->left)
+                    {
+                        node = NULL;
+                        _root = NULL;
+                        delete node;
+                        return NULL;
+                    }
+                    else if (!node->left && !node->right)
+                    {
+                        parent = node->parent;
+                        if (parent->left == node)
+                            parent->left = NULL;
+                        else
+                            parent->right = NULL;
+                        delete node;
+                    }
                 }
                 return node;
             }
             void  balance_my_tree_after_del(my_node *node)
             {
-
-                if (!node->color)
+                if (node)
                 {
-                    return ;
-                }
-                else if (node == this->get_root())
-                {
-                    node->color = 1;
-                    return ;
-                }
-                else 
-                {
-                    my_node *sibling = (node == node->parent->right) ? (sibling = node->parent->left) : (sibling = node->parent->right);
-                    //std::cout << "SIBLING IS :" <<  sibling->data << std::endl;
-                    //std::cout  << sibling->data << std::endl;
-                    // std::cout << "SIBLING : " << sibling->data << std::endl;
-                    // std::cout << "node : " << node->data << std::endl;
-                    // std::cout << "Parent : " << node->parent->data << std::endl << std::endl;
-                    //delete_node(node);
-                    //case 1 : sibling is black
-                    if (sibling && sibling->color)
+                    if (!node->color)
                     {
-                        // case1.1 : sibling is black and its children are black as well
-                        if ((!sibling->left || sibling->left->color) && (!sibling->right || sibling->right->color))
+                        return ;
+                    }
+                    else if (node == this->get_root())
+                    {
+                        node->color = 1;
+                        return ;
+                    }
+                    else 
+                    {
+                        my_node *sibling = (node == node->parent->right) ? (sibling = node->parent->left) : (sibling = node->parent->right);
+                        //std::cout << "SIBLING IS :" <<  sibling->data << std::endl;
+                        //std::cout  << sibling->data << std::endl;
+                        // std::cout << "SIBLING : " << sibling->data << std::endl;
+                        // std::cout << "node : " << node->data << std::endl;
+                        // std::cout << "Parent : " << node->parent->data << std::endl << std::endl;
+                        //delete_node(node);
+                        //case 1 : sibling is black
+                        if (sibling && sibling->color)
                         {
-                            //std::cout << "?";
-                            my_node *parent;
-                            parent = node->parent;
-                            parent->color = (parent->color == 1) ? (parent->color = -1) : (parent->color = 1);
-                            sibling->color = 0;
-                            node->color = 1;
-                            if (parent->color == -1)
-                                balance_my_tree_after_del(parent);
-                            return ;
-                        }
-                        if (node == node->parent->left)
-                        {
-                            my_node *parent;
-                            parent = node->parent;
-                            if ((!sibling->right || sibling->right->color) && (sibling->left && !sibling->left->color))
+                            // case1.1 : sibling is black and its children are black as well
+                            if ((!sibling->left || sibling->left->color) && (!sibling->right || sibling->right->color))
                             {
-                                std::swap(sibling->color, sibling->left->color);
-                                rotateRight(sibling);
-                                this->balance_my_tree_after_del(node);
+                                //std::cout << "?";
+                                my_node *parent;
+                                parent = node->parent;
+                                parent->color = (parent->color == 1) ? (parent->color = -1) : (parent->color = 1);
+                                sibling->color = 0;
+                                node->color = 1;
+                                if (parent->color == -1)
+                                    balance_my_tree_after_del(parent);
+                                return ;
                             }
-                            else if ( (sibling->right && !sibling->right->color) && (!sibling->left || sibling->left->color))
+                            if (node == node->parent->left)
                             {
-                                std::swap(parent->color, sibling->color);
+                                my_node *parent;
+                                parent = node->parent;
+                                if ((!sibling->right || sibling->right->color) && (sibling->left && !sibling->left->color))
+                                {
+                                    std::swap(sibling->color, sibling->left->color);
+                                    rotateRight(sibling);
+                                    this->balance_my_tree_after_del(node);
+                                }
+                                else if ( (sibling->right && !sibling->right->color) && (!sibling->left || sibling->left->color))
+                                {
+                                    std::swap(parent->color, sibling->color);
+                                    rotateLeft(parent);
+                                    sibling->right->color = 1;
+                                    node->color = 1;
+                                }
+                            }
+                            else 
+                            {
+                                my_node *parent;
+                                parent = node->parent;
+
+                                if ((!sibling->left || sibling->left->color) && !sibling->right->color)
+                                {
+                                    std::swap(sibling->color, sibling->right->color);
+                                    rotateLeft(sibling);
+                                    this->balance_my_tree_after_del(node);
+                                }
+                                else if (!sibling->left->color && (!sibling->right || sibling->right->color))
+                                {
+                                    std::swap(parent->color, sibling->color);
+                                    rotateRight(parent);
+                                    sibling->left->color = 1;
+                                    node->color = 1;
+                                }
+                            }
+
+                        }
+                        //case 2: Sibling is red and children are black
+                        else if (sibling && !sibling->color)
+                        {
+                            //steps are : 
+                            //1)Swap color of sibling and parent 
+                            //2)rotate parent to node direction (our db) and reapply cases 
+                            my_node *parent;
+                            parent = node->parent;
+
+                            std::swap(sibling->color, parent->color);
+                            if (parent->left == node)
                                 rotateLeft(parent);
-                                sibling->right->color = 1;
-                                node->color = 1;
-                            }
-                        }
-                        else 
-                        {
-                            my_node *parent;
-                            parent = node->parent;
-
-                            if ((!sibling->left || sibling->left->color) && !sibling->right->color)
-                            {
-                                std::swap(sibling->color, sibling->right->color);
-                                rotateLeft(sibling);
-                                this->balance_my_tree_after_del(node);
-                            }
-                            else if (!sibling->left->color && (!sibling->right || sibling->right->color))
-                            {
-                                std::swap(parent->color, sibling->color);
+                            else
                                 rotateRight(parent);
-                                sibling->left->color = 1;
-                                node->color = 1;
-                            }
-                        }
+                            this->balance_my_tree_after_del(node);
+                        }                    
+                }
 
-                    }
-                    //case 2: Sibling is red and children are black
-                    else if (sibling && !sibling->color)
-                    {
-                        //steps are : 
-                        //1)Swap color of sibling and parent 
-                        //2)rotate parent to node direction (our db) and reapply cases 
-                        my_node *parent;
-                        parent = node->parent;
-
-                        std::swap(sibling->color, parent->color);
-                        if (parent->left == node)
-                            rotateLeft(parent);
-                        else
-                            rotateRight(parent);
-                        this->balance_my_tree_after_del(node);
-                    }
                 }
                 return;
             }
@@ -356,11 +418,16 @@ namespace ft
             }
             my_node *    min_on_right(my_node * node) const 
             {
-                while(node->left)
+                if (node)
                 {
-                    node = node->left;
+                    while(node->left)
+                    {
+                        node = node->left;
+                    }
+                    return node;                 
                 }
-                return node;
+                return NULL;
+                
             }
             my_node *   inorder_predecessor(my_node * node)
             {
@@ -459,6 +526,7 @@ namespace ft
         private:
             my_node *_root;
             Alloc _alloc;
+            Compare _comp;
             size_type _size;
     };
 }

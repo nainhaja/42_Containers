@@ -5,7 +5,7 @@
 
 namespace ft
 {
-    template <class Pair, typename Node, class Tree_type>
+    template <typename Pair, typename Node, typename Tree_type>
     class RBT_iterator
     {
         public:
@@ -24,7 +24,7 @@ namespace ft
 
             operator RBT_iterator<const Pair, Node, Tree_type>() const
             {
-                return RBT_iterator<const Pair, Node, Tree_type>(my_node);
+                return RBT_iterator<const Pair, Node, Tree_type>(my_node, my_tree);
             }
             pointer get_node() const {return this->my_node->data;}
             Node *base() const {return this->my_node;}

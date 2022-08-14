@@ -88,27 +88,26 @@ bool testmapConstructors()
     ft::map<char, int> m_copy(m_first);
 
     cond = first.size() == m_first.size() && comparemaps(first.begin(), first.end(), m_first.begin(), m_first.end());
-
+    
     std::map<char, int> second(first.begin(), first.end());
     ft::map<char, int> m_second(m_first.begin(), m_first.end());
 
     cond = cond && second.size() == m_second.size() && comparemaps(second.begin(), second.end(), m_second.begin(), m_second.end());
     std::map<char, int> third(second);
     ft::map<char, int> m_third(m_second);
-
+    
     cond = cond && third.size() == m_third.size() && comparemaps(third.begin(), third.end(), m_third.begin(), m_third.end());
 
     std::map<char, int, classcomp> fourth;  // class as Compare
     ft::map<char, int, classcomp> m_fourth; // class as Compare
 
     cond = fourth.size() == m_fourth.size() && cond && comparemaps(fourth.begin(), fourth.end(), m_fourth.begin(), m_fourth.end());
-
     bool (*fn_pt)(char, char) = fncomp;
+    
     std::map<char, int, bool (*)(char, char)> fifth(fn_pt);  // function pointer as Compare
     ft::map<char, int, bool (*)(char, char)> m_fifth(fn_pt); // function pointer as Compare
-
     cond = fifth.size() == m_fifth.size() && cond && comparemaps(fifth.begin(), fifth.end(), m_fifth.begin(), m_fifth.end());
-
+    
     first = std::map<char, int>();
     m_first = ft::map<char, int>();
 
@@ -579,6 +578,7 @@ void testConstructors()
     }
     std::cout << "\t\033[1;37m[-------------------- [" << std::setw(40) << std::left << " Constructors with costum compare "
               << "] --------------------]\t\t\033[0m";
+    
     EQUAL(testmapConstructors());
     std::cout << "\t\033[1;37m[-------------------- [" << std::setw(40) << std::left << " operator= (lhs.size = rhs.size) "
               << "] --------------------]\t\t\033[0m";
