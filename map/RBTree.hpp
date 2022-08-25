@@ -27,6 +27,7 @@ namespace ft
                 my_node *parent;
             };
         public:
+            typedef typename Pair::first_type                          my_first_type;
             typedef my_node                                   my_node;
             typedef ft::RBT_iterator<Pair, my_node,RBTree>                     iterator;
             typedef ft::RBT_iterator<const Pair, my_node, RBTree>               const_iterator;
@@ -34,49 +35,50 @@ namespace ft
             typedef ft::reverse_iterator<const_iterator>         const_reverse_iterator;
             typedef size_t                                       size_type;
             
-            RBTree():_root(nullptr), _size(0)
+            RBTree():_root(nullptr), _size(0) 
             {
             }
             RBTree(my_node *root, Alloc alloc, Compare comp, size_type size):_root(root), _alloc(alloc), _comp(comp), _size(size)
             {}
             RBTree(RBTree const & x) :_root(x._root), _size(x._size){};
             ~RBTree(){}
-            // RBTree(Pair data)
-            // {
-            //     //super();
-            //     this->_root = new my_node();
-                
-            //     this->_root->data = data;   // only including data. not key
-            //     this->_root->left = NULL; // left subtree
-            //     this->_root->right = NULL; // right subtree
-            //     this->_root->color = false; // colour . either 'R' or 'B'
-            //     this->_root->parent = NULL; // required at time of rechecking.
-            // }
-            my_node *get_root()
+            void    swap(RBTree &x)  
+            {
+                std::swap(_root, x._root);
+                std::swap(_size, x._size);  
+            }
+            my_node *get_root() const
             {
                 return this->_root;
             }
-            iterator            begin() {return iterator(min_on_right(_root), (*this));}
-            const_iterator            begin() const {return iterator(min_on_right(_root), (*this));}
-            iterator            end() {return iterator(NULL, (*this));}
-            const_iterator            end() const {return iterator(NULL, (*this));}
-            reverse_iterator rbegin()
+            iterator            begin() {return iterator(min_on_right(_root), (this));}
+            const_iterator            begin() const {return iterator(min_on_right(_root), (this));}
+            iterator            end() {return iterator(NULL, (this));}
+            const_iterator            end() const {return iterator(NULL, (this));}
+            reverse_iterator rbegin() 
             {
-                return reverse_iterator(iterator(min_on_right(_root), (*this)));
+                //std::cout << "xDDDDDDO " << std::endl; 
+                return reverse_iterator(this->end());
             }
             const_reverse_iterator rbegin() const
             {
-                return reverse_iterator(iterator(min_on_right(_root), (*this)));
+                //iterator it;
+
+                //it = this->begin();
+                
+                return const_reverse_iterator(const_iterator(this->end()));
             }
             reverse_iterator rend()
             {
-                return reverse_iterator(iterator(min_on_right(_root), (*this)));
+                //std::cout << "xDDD" << std::endl;
+                return reverse_iterator(this->begin());
             }
             const_reverse_iterator rend() const
             {
-                return reverse_iterator(iterator(min_on_right(_root), (*this)));
+                //std::cout << "xDDDOO" << std::endl;
+                return const_reverse_iterator((begin()));
             }
-            void    initialize_my_tree(const Compare &new_comp, const Alloc &new_alloc)
+            void    initialize_my_tree( Compare new_comp,  Alloc new_alloc)
             {
                 this->_alloc = new_alloc;
                 this->_comp = new_comp;
@@ -84,11 +86,12 @@ namespace ft
             iterator get_iterator(my_node *node)
             {
                 //std::cout << "NOde first and second" << node->data->first << "|" << node->data->second << std::endl;
-                return iterator(node, (*this));
+
+                return iterator(node, (this));
             }
-            my_node *get_new_node(Pair data)
+            my_node *get_new_node(Pair const &data)
             {
-                my_node *new_node = new my_node;
+                my_node *new_node = _nodeAlloc.allocate(1);
                 
                 new_node->data = _alloc.allocate(1);
                 _alloc.construct(new_node->data, data);
@@ -185,7 +188,7 @@ namespace ft
             {
                 this->_size = 0;
             }
-            void printHelper(my_node *root, std::string indent, bool last) 
+            void printHelper(my_node *root, std::string indent, bool last) const
             {
                 if (root != NULL) 
                 {
@@ -215,6 +218,24 @@ namespace ft
                     printHelper(root->left, indent, false);
                     printHelper(root->right, indent, true);
                 }
+            }
+            iterator find_key(my_first_type  const & key) const
+            {
+                my_node * node = _root;
+
+
+                if (node == NULL)
+                    return iterator(NULL, this);
+                while(node)
+                {
+                    if (!_comp(node->data->first, key) && !_comp(key,node->data->first))
+                        return iterator(node, this);
+                    else if (!_comp(node->data->first, key))
+                        node = node->left;
+                    else
+                        node = node->right;
+                }
+                return iterator(NULL, this);
             }
             size_type size() const
             {
@@ -266,16 +287,33 @@ namespace ft
                         node = NULL;
                         _root = NULL;
                         delete node;
+                        
+
                         return NULL;
                     }
                     else if (!node->left && !node->right)
                     {
+                       // std::cout << "losos" << std::endl;
+                        //this->printHelper(this->get_root(), "", true);
                         parent = node->parent;
                         if (parent->left == node)
                             parent->left = NULL;
                         else
                             parent->right = NULL;
-                        delete node;
+                        //std::cout << std::endl;
+                        
+                        //
+                        //std::cout << sizeof(node) << std::endl;
+                        _alloc.destroy(node->data);
+                        _alloc.deallocate(node->data, 1);
+                        _nodeAlloc.deallocate(node, 1);
+                        //delete node;
+                        //node = NULL;
+                        
+                        //this->printHelper(this->get_root(), "", true);
+                        //delete node;
+                        //std::cout << "Here again" << std::endl;
+                        //delete node;
                     }
                 }
                 return node;
@@ -305,10 +343,11 @@ namespace ft
                         //case 1 : sibling is black
                         if (sibling && sibling->color)
                         {
+                            
                             // case1.1 : sibling is black and its children are black as well
                             if ((!sibling->left || sibling->left->color) && (!sibling->right || sibling->right->color))
                             {
-                                //std::cout << "?";
+                                // make parent more black ; make sibling red; make node red ; rebalance parent if he's db
                                 my_node *parent;
                                 parent = node->parent;
                                 parent->color = (parent->color == 1) ? (parent->color = -1) : (parent->color = 1);
@@ -320,14 +359,17 @@ namespace ft
                             }
                             if (node == node->parent->left)
                             {
+                                
                                 my_node *parent;
                                 parent = node->parent;
+                                // node is left far sibling child is black and closest sibling child is red
                                 if ((!sibling->right || sibling->right->color) && (sibling->left && !sibling->left->color))
                                 {
                                     std::swap(sibling->color, sibling->left->color);
                                     rotateRight(sibling);
                                     this->balance_my_tree_after_del(node);
                                 }
+                                // node is left far sibling child is Red and closest sibling child is Black
                                 else if ( (sibling->right && !sibling->right->color) && (!sibling->left || sibling->left->color))
                                 {
                                     std::swap(parent->color, sibling->color);
@@ -340,13 +382,14 @@ namespace ft
                             {
                                 my_node *parent;
                                 parent = node->parent;
-
+                                 // node is right far sibling child is black and closest sibling child is red
                                 if ((!sibling->left || sibling->left->color) && !sibling->right->color)
                                 {
                                     std::swap(sibling->color, sibling->right->color);
                                     rotateLeft(sibling);
                                     this->balance_my_tree_after_del(node);
                                 }
+                                 // node is right far sibling child is red and closest sibling child is black
                                 else if (!sibling->left->color && (!sibling->right || sibling->right->color))
                                 {
                                     std::swap(parent->color, sibling->color);
@@ -357,9 +400,10 @@ namespace ft
                             }
 
                         }
-                        //case 2: Sibling is red and children are black
+                        //case 2: Sibling is red 
                         else if (sibling && !sibling->color)
                         {
+                            
                             //steps are : 
                             //1)Swap color of sibling and parent 
                             //2)rotate parent to node direction (our db) and reapply cases 
@@ -378,8 +422,19 @@ namespace ft
                 }
                 return;
             }
+            void    decrement_size() 
+            {
+                this->_size--;
+            }
+            void    erase(iterator &it)
+            {
+                this->remove(it.base());
+                
+            }
             void    remove(my_node *node)
             {
+                if (!node)
+                    return ;
                 if (node == _root && !node->right && !node->left)
                 {
                     this->delete_node(node);
@@ -387,44 +442,133 @@ namespace ft
                 }
                 else if (!node->right && !node->left)
                 {
+                    //std::cout << "reached herex " << std::endl;
                     this->balance_my_tree_after_del(node);
+                   
                     this->delete_node(node);
+                    node = NULL;
+                    
+                   
                 }
                 else
                 {
+
                     if (node->right)
                     {
                         my_node * my_successor = inorder_successor(node);
-                        node->data = my_successor->data;
+                        _alloc.destroy(node->data);
+                        _alloc.construct(node->data, *(my_successor->data));
                         my_successor->color = (my_successor->color == 1) ? (my_successor->color = -1) : (my_successor->color = 1);
                         this->remove(my_successor);
                     }
                     else
                     {
                         my_node * my_predecessor = inorder_predecessor(node);
-                        node->data = my_predecessor->data;
+                        _alloc.destroy(node->data);
+                        _alloc.construct(node->data, *(my_predecessor->data));
                         my_predecessor->color = (my_predecessor->color == 1) ? (my_predecessor->color = -1) : (my_predecessor->color = 1);
                         this->remove(my_predecessor);
                     }
                 }
             }
-            my_node *    max_on_left(my_node * node)
+            iterator lower_bound(my_first_type const &  key) const
             {
-                while(node->right)
+                my_node * node = _root;
+                iterator it = find_key(key);
+                my_node *my_successor = _root;
+
+                if (node == NULL)
+                    return iterator(NULL, this);
+                else if (it.base())
+                    return it;
+                while(node)
+                {
+                    //t = node->data->first - key;
+                    
+                    if (!_comp(node->data->first, key))
+                    {
+                        my_successor = node;
+                        node = node->left;
+                    }
+                        
+                    else if (!_comp(key, node->data->first))
+                        node = node->right;
+                }
+                return iterator(my_successor, this);
+            }
+            iterator upper_bound(my_first_type const &  key) const
+            {
+                my_node * node = _root;
+                iterator it = find_key(key);
+                my_node *my_successor = _root;
+
+                if (node == NULL)
+                    return iterator(NULL, this);
+                else if (it.base())
+                {
+                    it++;
+                    return it;
+                }
+                    //return it;
+                while(node)
+                {
+                    //t = node->data->first - key;
+                    
+                    if (!_comp(node->data->first, key))
+                    {
+                        my_successor = node;
+                        node = node->left;
+                    }
+                        
+                    else if (!_comp(key, node->data->first))
+                        node = node->right;
+                }
+                return iterator(my_successor, this);
+            }
+            my_node * max_tree() const
+            {
+                my_node * node = _root;
+                while(node && node->right)
                 {
                     node = node->right;
                 }
-                return node;
+                return node; 
+            }
+
+            my_node * min_tree() const
+            {
+                my_node * node = _root;
+                while(node && node->left)
+                {
+                    node = node->left;
+                }
+                return node; 
+            }
+
+            my_node *    max_on_left(my_node * node)
+            {
+                my_node * new_node = node;
+                if (new_node)
+                {
+                    while(new_node->right)
+                    {
+                        new_node = new_node->right;
+                    }
+                    return new_node;                    
+                }
+                return NULL;
+
             }
             my_node *    min_on_right(my_node * node) const 
             {
-                if (node)
+                my_node * new_node = node;
+                if (new_node)
                 {
-                    while(node->left)
+                    while(new_node->left)
                     {
-                        node = node->left;
+                        new_node = new_node->left;
                     }
-                    return node;                 
+                    return new_node;                 
                 }
                 return NULL;
                 
@@ -526,6 +670,7 @@ namespace ft
         private:
             my_node *_root;
             Alloc _alloc;
+            typename	Alloc::template	rebind<my_node>::other	_nodeAlloc;
             Compare _comp;
             size_type _size;
     };

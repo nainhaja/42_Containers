@@ -10,12 +10,13 @@
 #include "../enable_if.hpp"
 #include "../is_integral.hpp"
 #include "../equal.hpp"
+#include "../vector/vector.hpp"
 
 #pragma once
 
 namespace ft
 {
-    template < class Key, class T, class Compare = std::less<Key>, class Alloc = std::allocator<ft::pair<const Key,T> > >
+    template < typename Key, typename T, class Compare = std::less<Key>, class Alloc = std::allocator< ft::pair<const Key,T> > >
 
     class map
     {
@@ -55,7 +56,7 @@ namespace ft
             }value_compare;
 
             explicit map (const key_compare& comp = key_compare(),
-                            const allocator_type& alloc = allocator_type()) : _comp(comp), _alloc(alloc)
+                            const allocator_type& alloc = allocator_type()) : my_tree(), _comp(comp), _alloc(alloc)
             {
                 my_tree.initialize_my_tree(comp, alloc);
             }   
@@ -66,14 +67,11 @@ namespace ft
                     const allocator_type& alloc = allocator_type()) : _comp(comp), _alloc(alloc)
             {
                  size_t my_distance = std::distance(first, last);
-                // my_tree = _alloc.allocate(my_distance);
                 for(size_type i=0; i < my_distance ; i++)
                 {
                     my_tree.insert(my_tree.get_new_node(*first));
-                    //_alloc.construct(&my_tree[i], *first);
                     first++;
                 }
-                //first = last;
             }
 
             map (const map& x) : _comp(x._comp), _alloc(x._alloc)
@@ -92,15 +90,8 @@ namespace ft
                 iterator it;
                 
                 
-                // if (this->size() > x.size())
-                // {
                 this->my_tree.clear_my_tree(this->my_tree.get_root());
                 this->my_tree.set_size();
-                    
-                // }
-                    
-
-                    
                 _comp = x._comp;
                 _alloc = x._alloc;
                 it = k.begin();
@@ -155,23 +146,22 @@ namespace ft
 
             mapped_type& operator[] (const key_type& k)
             {
-                return ((*((this->insert(     ft::make_pair(k,mapped_type())       )).first)).second);
+                return ((*((this->insert(ft::make_pair(k,mapped_type()) )).first)).second);
             }
 
             ft::pair<iterator,bool> insert(const value_type& val)
             {
-                // this is random content just so i can use the tester
-               // std::cout << "MY VAL " << val.second << std::endl;
-               iterator t = this->my_tree.get_iterator(this->my_tree.insert(this->my_tree.get_new_node(val)));
+                iterator it = this->my_tree.find_key(val.first);
+                if (!it.base())
+                {
+                    this->my_tree.insert(this->my_tree.get_new_node(val));
+                    it = this->my_tree.find_key(val.first);
+                    return ft::pair<iterator, bool>(it, true);
+                }
+                return ft::pair<iterator, bool>(it, false);
+                    
 
-                ft::pair<iterator, bool> k(t, true);
-                return k;
             }
-            // void insert (const value_type& val) // change return type;
-            // {
-            //     this->my_tree.insert(this->my_tree.get_new_node(val));
-
-            // } 
             iterator insert (iterator position, const value_type& val)
             {
                 this->my_tree.insert(this->my_tree.get_new_node(val));
@@ -179,33 +169,69 @@ namespace ft
             }
 
             template <class InputIterator>
-            void insert (InputIterator first, InputIterator last)
+            void insert (InputIterator first, InputIterator last, typename ft::enable_if<!ft::is_integral<InputIterator>::value, InputIterator>::type = InputIterator())
             {
-                first = last;
+                for(InputIterator it=first; it != last;it++)
+                {
+                    this->insert(ft::make_pair((*it).first, (*it).second));
+                    first++;
+                }
                 return;
             }
 
-
             void erase (iterator position)
             {
-                position = this->begin();
+                iterator it;
+                
+                it = this->my_tree.find_key((*position).first);
+                if (it.base())
+                {
+                    this->my_tree.remove(it.base());
+                }
+                    
+                this->my_tree.decrement_size();
             }
             size_type erase (const key_type& k)
             {
-                return k;
+                iterator it;
+                
+                it = this->my_tree.find_key(k);
+                if (it.base())
+                {
+                    this->my_tree.erase(it);
+                    this->my_tree.decrement_size();
+                    return 1;
+                }
+                return 0;
             }
             void erase (iterator first, iterator last)
             {
-                first = last;
+                size_t i=0;
+                iterator it(first);
+                ft::vector<int> my_Vec;
+                for(; it != last;it++)
+                {
+                    my_Vec.push_back(it->first);
+                    i++;
+                }   
+                for(size_t t = 0; t < i; t++)
+                {
+                    this->erase(my_Vec[t]);
+                }
             }
 
             void swap (map& x)
             {
-                x = (*this);
+
+                this->my_tree.swap(x.my_tree);
+                std::swap(x._alloc, _alloc);
+                std::swap(x._comp, _comp);
             }
 
             void clear()
             {
+                this->my_tree.clear_my_tree(my_tree.get_root());
+                this->my_tree.set_size();
                 return ;
             }
 
@@ -214,7 +240,6 @@ namespace ft
                 key_compare k;
                 return k;
             }
-            //DONT FORGET THIS
             value_compare value_comp() const
             {
                 key_compare k;
@@ -225,31 +250,20 @@ namespace ft
             {
                 iterator it;
 
-                it = this->begin();
-                
-                for(; it != this->end();it++)
-                {
-                    if ((*it).first == k)
-                        return it;   
-                }
+                it = my_tree.find_key(k);
                 return it;
             }
             const_iterator find (const key_type& k) const
             {
                 iterator it;
 
-                it = this->begin();
-                
-                for(; it != this->end();it++)
-                {
-                    if ((*it).first == k)
-                        return it;   
-                }
+                it = my_tree.find_key(k);
                 return it;
             }
 
             ft::RBTree<value_type, Compare, Alloc> get_tree() const
             {
+                
                 return this->my_tree;
             }
             value_type *get_pair()
@@ -258,57 +272,52 @@ namespace ft
             }
             size_type count (const key_type& k) const
             {
-                key_type kk;
-
-                kk = k;
+                iterator it = my_tree.find_key(k);
+                if (it.base())
+                    return 1;
                 return 0;
             }
 
             iterator lower_bound (const key_type& k){
-                               key_type kk;
-
-                kk = k;
-                return this->begin();
+                 
+                return my_tree.lower_bound(k);
             }
             const_iterator lower_bound (const key_type& k) const
             {
-                               key_type kk;
-
-                kk = k;
-                return this->begin();
+                return my_tree.lower_bound(k);
             }
 
 
             iterator upper_bound (const key_type& k)
             {
-                               key_type kk;
-
-                kk = k;
-                return this->begin();
+                 return my_tree.upper_bound(k);
             }
             const_iterator upper_bound (const key_type& k) const
             {
-                               key_type kk;
-
-                kk = k;
-                return this->begin();
+                return my_tree.upper_bound(k);
             }
 
 
             ft::pair<const_iterator,const_iterator> equal_range (const key_type& k) const
             {
-                               key_type kk;
-
-                kk = k;
+                 //iterator it;
                 ft::pair<const_iterator,const_iterator> ok;
+
+                //it = 
+                ok.first = lower_bound(k);
+                //it++;
+                ok.second = upper_bound(k);
                 return ok;
             }
             ft::pair<iterator,iterator>             equal_range (const key_type& k)
             {
-                               key_type kk;
-
-                kk = k;
+                //iterator it;
                 ft::pair<iterator,iterator> ok;
+
+                //it = 
+                ok.first = lower_bound(k);
+                //it++;
+                ok.second = upper_bound(k);
                 return ok;
             }
 
@@ -318,7 +327,13 @@ namespace ft
                 return _alloc;
             }
 
-            ~map(){};
+            virtual ~map(){
+                if (my_tree.get_root())
+                {
+                    this->my_tree.clear_my_tree(my_tree.get_root());
+                    this->my_tree.set_size();
+                }
+            };
         private:
             ft::RBTree<value_type, Compare, Alloc> my_tree;
             Compare                     _comp;

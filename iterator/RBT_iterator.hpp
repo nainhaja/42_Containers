@@ -9,22 +9,23 @@ namespace ft
     class RBT_iterator
     {
         public:
-            typedef          Node                               value_type;
+            typedef          Pair                               value_type;
             typedef          ptrdiff_t                          difference_type;
             typedef          Pair*                              pointer;
             typedef          Pair&                              reference;
             typedef typename std::bidirectional_iterator_tag    iterator_category;
 
-            RBT_iterator() : my_node(NULL){}
-            RBT_iterator(Node* ptr, Tree_type tree) : my_node(ptr), my_tree(tree)
+            RBT_iterator() : my_node(NULL), my_tree(NULL){}
+            RBT_iterator(Node* ptr, Tree_type const *tree) : my_node(ptr), my_tree(tree)
             {
+
             }
             RBT_iterator(RBT_iterator const & t) : my_node(t.base()), my_tree(t.my_tree){}
 
 
-            operator RBT_iterator<const Pair, Node, Tree_type>() const
+            operator RBT_iterator<const value_type, Node, Tree_type>() const
             {
-                return RBT_iterator<const Pair, Node, Tree_type>(my_node, my_tree);
+                return RBT_iterator<const value_type, Node, Tree_type>(my_node, my_tree);
             }
             pointer get_node() const {return this->my_node->data;}
             Node *base() const {return this->my_node;}
@@ -37,20 +38,6 @@ namespace ft
 
             virtual ~RBT_iterator(){}
 
-
-            // Node* operator *() const{
-            //     return *my_node;
-            // } 
-            // Node* operator ->() const {
-            //     return &(*my_node);
-            // }
-
-
-
-            // bool operator==(const RBT_iterator & second)
-            // {
-            //     return (this->my_node == second.get_node());
-            // }
             bool operator!=(const RBT_iterator & second)
             {
                 return (this->my_node != second.base());
@@ -59,29 +46,36 @@ namespace ft
 
             Node *    max_on_left(Node * node)
             {
-                while(node->right)
+                Node *new_node = node;
+                while(new_node->right)
                 {
-                    node = node->right;
+                    new_node = new_node->right;
                 }
-                return node;
+                return new_node;
             }
             Node *    min_on_right(Node * node)
             {
-                while(node->left)
+                Node *new_node = node;
+                while(new_node->left)
                 {
-                    node = node->left;
+                    new_node = new_node->left;
                 }
-                return node;
+                return new_node;
             }
+
 
             Node *   inorder_predecessor(Node * node)
             {
+                
+                if (!node)
+                    return this->my_tree->max_tree();
                 if (node->left)
                     return max_on_left(node->left);
-                Node *parent = node->parent;
-                while(parent != NULL  && node == parent->left)
+                Node *new_node = node;
+                Node *parent = new_node->parent;
+                while(parent != NULL  && new_node == parent->left)
                 {
-                    node = parent;
+                    new_node = parent;
                     parent = parent->parent;
                 }
                 return parent;
@@ -89,13 +83,15 @@ namespace ft
 
             Node *   inorder_successor(Node * node)
             {
-
+                if (!node)
+                    return this->my_tree->min_tree();
                 if (node->right)
                     return min_on_right(node->right);
-                Node *parent = node->parent;
-                while(parent != NULL  && node == parent->right)
+                Node *new_node = node;
+                Node *parent = new_node->parent;
+                while(parent != NULL  && new_node == parent->right)
                 {
-                    node = parent;
+                    new_node = parent;
                     parent = parent->parent;
                 }
 
@@ -106,17 +102,18 @@ namespace ft
                 this->my_node = this->inorder_successor(this->my_node);
                 return (*this);
             }
-            RBT_iterator operator--()
+            RBT_iterator &operator--()
             {
-                //std::cout << "HEREe" << std::endl;
-                if (!this->my_node && my_tree.get_root())
+                
+               // std::cout << "HEREe" << std::endl;
+                if (!this->my_node && my_tree)
                 {
-                  //  std::cout << "HERE" << std::endl;
-                    this->my_node = this->max(this->my_tree.get_root());
-                    //std::cout <<  this->my_node->data->second << std::endl;
+                    this->my_node = this->max(this->my_tree->get_root());                    
                     return (*this);
                 }
+                //std::cout << "okk" << std::endl;
                 this->my_node = this->inorder_predecessor(this->my_node);
+                
                 return (*this);
             }
             RBT_iterator operator++(int) 
@@ -137,8 +134,9 @@ namespace ft
 
             RBT_iterator &operator=(RBT_iterator const & t)
             {
-                this->my_node = t.base();
+
                 this->my_tree = t.my_tree;
+                this->my_node = t.base();
                 return (*this);
             }
             bool operator==(const RBT_iterator & second)
@@ -150,11 +148,13 @@ namespace ft
         private:
             Node * max( Node * node )
             {
-                while(node->right)
+                Node *t = node;
+
+                while(t->right != NULL)
                 {
-                    node = node->right;
+                    t = t->right;
                 }
-                return node;
+                return t;
             }
             Node * min( Node * node )
             {
@@ -184,7 +184,7 @@ namespace ft
 
         protected:
 			Node*	    my_node;
-            Tree_type   my_tree;
+            Tree_type   const *my_tree;
     };
     template <class Pair, class Node, class Tree_type>
     bool operator==(const RBT_iterator<Pair, Node, Tree_type> & first, const RBT_iterator<Pair, Node, Tree_type> & second)
@@ -223,10 +223,6 @@ namespace ft
     {
         return (first.base() <= second.base());
     }
-//     template <class Pair, class Node, class Tree_type>
-//    typename RBT_iterator<Pair, Node, Tree_type>::difference_type operator- ( const RBT_iterator<Pair, Node, Tree_type> & first, const random_access_iterator<pair, Node, Tree_type> & second)
-//     {
-//         return (first.get_node() - second.get_node());
-//     }
+
 
 }

@@ -153,7 +153,6 @@ namespace ft
                 _size++;
                 return (iterator(_data + my_position));
             }
-
             void insert (iterator position, size_type n, const value_type& val)
             {
                 difference_type my_position = std::distance(begin(), position);
@@ -387,7 +386,13 @@ namespace ft
             }
 
 
-            virtual ~vector() {};
+            virtual ~vector() {
+                for(size_type i=0;i< _size;i++)
+                {
+                    _alloc.destroy(&_data[i]);
+                }
+                _alloc.deallocate(_data, _size);
+            };
         
         private:
             size_type       _capacity;
